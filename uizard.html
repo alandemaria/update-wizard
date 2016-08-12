@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<head>
+	<script src="angular.min.js"></script>
+	<script src="clipboard.js"></script>
+    <link rel="stylesheet" href="style2.css">
+	<link href='https://fonts.googleapis.com/css?family=Libre+Franklin:400,800italic' rel='stylesheet' type='text/css'>
+</head>
+
+<body ng-app="updateWizard">
+
+	<div class="logo">
+		<h1>UpdateWizard</h1>
+	</div>
+	
+	<div ng-controller="controlador" class="miolo">	
+		<form>			
+			<span class="nome-parametro">Ambiente: </span>
+			<select ng-model="selectedName" ng-options="x for x in ambientes"></select><br>
+			
+			<br>	
+			<span class="nome-parametro">Nome da tabela: </span>
+			<input type="text" placeholder="TBXYABCD" ng-model="nomeTabela"></input><br><br>
+		</form>
+		
+		<span class="nome-parametro">Adicionar campos > </span><button style="font-size: 1.5em" ng-click="adicionaCampos()">+</button><br><br>
+		<span class="nome-parametro">Adicionar linha > </span><button style="font-size: 1.5em" ng-click="adicionaLinha()">+</button><br><br>
+    	<form ng-submit="removeLinha(texto)"><input type="text" ng-model="texto"/><input type="submit" id="removeLinha" value="X" /></form>
+		<table class="tabela">
+			<tr>
+				<td><p>Colunas</p></td>
+				<td ng-repeat="y in campos"><input type="text" ng-model="y.colname"></input></td>
+			</tr>
+			<tr ng-repeat="entrada in linha">
+				<td ng-model="entradaLinha"><p>{{entrada[0].row}}</p></td>
+				<td ng-repeat="j in entrada"><input type="text" ng-model="j.val"></input></td>
+				<td ng-repeat-end></td>
+			</tr>
+		</table>
+		
+		<div class="saida" id="query" style="text-transform: uppercase">
+			<span>INSERT INTO {{selectedName}}.{{nomeTabela}} 
+				(<span ng-repeat="x in campos">{{x.colname}}{{ $last ? '' : ','}}</span>)
+				
+				<span ng-repeat="entrada in linha"><br>
+					SELECT <span ng-repeat="y in entrada">
+								'{{y.val}}'{{ $last ? '' : ','}}
+							</span> 
+					FROM SYSIBM.SYSDUMMY1 {{ $last ? '' : 'UNION ALL'}}
+				</span>
+			 </span>
+		</div>
+		
+		<button class="botaoCopia" data-clipboard-target="#query" data-clipboard-action="copy">Copiar</button>
+		
+	</div>
+	
+	<div class="creditos">
+		<p>ABDM - 08/2016</p>
+	</div>
+	
+	
+	<script>
+		var clipboard = new Clipboard('.botaoCopia');
+	
+		angular.module('updateWizard',[])
+			.controller('controlador', function($scope) {
+	
+				$scope.ambientes = ["DB2CAS", "DB2DS1", "DB2TS8"];
+				
+				$scope.campos = [];
+				$scope.qtdCampos = 0;
+				
+				$scope.linha = [];
+				$scope.qtdLinhas = 0;
+				
+				//funcao que insere as colunas				
+				$scope.adicionaCampos = function() {
+					$scope.campos.push({id: $scope.qtdCampos, colname: ''});
+					$scope.qtdCampos = $scope.qtdCampos + 1;
+					
+					//tratamento para inclusão de novas colunas após linhas já existirem
+					var qtdLinhas = $scope.linha[0].length;
+					if (qtdLinhas > 0) {
+						var qtdColunasAnterior = $scope.linha[0][qtdLinhas - 1].col;
+						var qtdColunasAMais = $scope.qtdCampos - qtdColunasAnterior - 1;
+						for (var i in $scope.linha) {
+							for (var j = 1; j <= qtdColunasAMais; j++) {
+								$scope.linha[i].push({col: qtdColunasAnterior + j, row: $scope.linha[i][1].row, val: ''});
+							}
+						}
+					}
+				}
+				
+				//funcao que insere linhas
+				$scope.adicionaLinha = function() {
+					var par = [];
+					for (i = 0; i < $scope.qtdCampos; i++) {
+						par.push({col: i, row: $scope.qtdLinhas, val: ''})
+					}
+					$scope.linha.push(par);
+					$scope.qtdLinhas = $scope.qtdLinhas + 1;
+				}				
+				
+				//funcao para remover linhas
+				$scope.removeLinha = function (line) {
+					$scope.linha.splice(line,1);
+					for (var i = 0; i <= $scope.linha.length; i++) {
+						for (var j = 0; j <= $scope.linha[i].length; j++) {
+							$scope.linha[i][j].row = i;
+						}
+					}
+				}
+			
+		   });		
+	</script>
+</body>
